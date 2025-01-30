@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remark Notifications</title>
+    <link rel="shortcut icon" href="/icon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+    <div class="loading_icon">
+        <img src="./icon.png" style="width: 80px; height: 80px;">
+    </div>
+    <div class="content-holder">
+        <div class="setup-page">
+            <img src="./icon.png" style="width: 80px; height: 80px;">
+            <h1>Setup Remark Notifications</h1>
+            <div class="info">Remark Notifications allows us to reliabily send push notifications to your device without the need for web push API (which is not secure, outdated and buggy) while remaining completely
+                <div class="e2ee-anim">end-to-end encrypted</div>
+            </div>
+            <button class="connect-button" onclick="connect();">Connect Remark Panel Account</button>
+            <p class="error" style="opacity: 0; transition: 0.1s;">* Failed to create a handler key, try again!</p>
+        </div>
+        <div class="pending-page" style="display: none;">
+            <img src="./icon.png" style="width: 80px; height: 80px;">
+            <h1>Proceed In Browser</h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+        </div>
+        <div class="expired-page" style="display: none;">
+            <img src="./icon.png" style="width: 80px; height: 80px;">
+            <h1>Expired</h1>
+            <p class="error">* You took too long to approve in your browser, please relaunch this application.</p>
+        </div>
+        <div class="success-page" style="display: none;">
+            <img src="./icon.png" style="width: 80px; height: 80px;">
+            <h1>Success</h1>
+            <p class="e2ee-anim">You will now receive notifications to this device from Remark Panel.</p>
+        </div>
+        <script>
+            let isConnecting = false;
+            let checkStatusInterval = null;
+
+            function connect() {
+                if (isConnecting) {
+                    return;
+                }
+                document.getElementsByClassName("error")[0].style.opacity = "0";
+                isConnecting = true;
+                document.getElementsByClassName("connect-button")[0].innerHTML = `<svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    class="animate-spin"
+                    >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>`; // set icon to spinner
+                window.handler.createHandlerKey();
+            };
+
+            let connectionId = null;
+
+            window.handler.onHandlerKeySuccess((key) => {
+                isConnecting = false;
+                document.getElementsByClassName("connect-button")[0].innerHTML = "Connect Remark Panel Account";
+                connectionId = key;
+                document.getElementsByClassName("setup-page")[0].style.display = "none";
+                document.getElementsByClassName("pending-page")[0].style.display = "flex";
+
+                checkStatusInterval = setInterval(() => {
+                    window.handler.checkConnectionStatus(connectionId);
+                }, 3000);
+
+                window.handler.onConnectionStatusResponse((status) => {
+                    if (!checkStatusInterval) {
+                        return;
+                    };
+                    if (status != null) {
+                        clearInterval(checkStatusInterval);
+                        if (status == false) {
+                            document.getElementsByClassName("setup-page")[0].style.display = "none";
+                            document.getElementsByClassName("pending-page")[0].style.display = "none";
+                            document.getElementsByClassName("expired-page")[0].style.display = "flex";
+                        };
+                        if (status == true) {
+                            document.getElementsByClassName("setup-page")[0].style.display = "none";
+                            document.getElementsByClassName("pending-page")[0].style.display = "none";
+                            document.getElementsByClassName("success-page")[0].style.display = "flex";
+                        };
+                    };
+                });
+            });
+
+            window.handler.onHandlerKeyFailed(() => {
+                document.getElementsByClassName("error")[0].style.opacity = "1";
+                isConnecting = false;
+                document.getElementsByClassName("connect-button")[0].innerHTML = "Connect Remark Panel Account";
+            });
+        </script>
+    </div>
+</body>
+
+</html>

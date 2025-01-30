@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification</title>
+    <style>
+        body {
+            background: rgba(0, 0, 0, 0);
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 0px;
+            border-radius: 10px;
+            text-align: center;
+            overflow: hidden;
+            font-family: 'General Sans', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+        }
+        
+        * {
+            user-select: none;
+            -ms-user-select: none;
+            -ms-user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .message {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        @keyframes fade_out {
+            0% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+        
+        .notification-holder {
+            padding: 10px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+            animation: fade_out 0.5s linear 2.5s 1 forwards;
+        }
+        
+        .notification-box {
+            width: 500px;
+            height: 70px;
+            background-color: rgb(0, 0, 0);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: 0.1s;
+            cursor: pointer;
+            text-align: left;
+            padding: 10px;
+            padding-left: 20px;
+            padding-right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification-box:active {
+            transform: scale(0.95);
+        }
+        
+        .notification-box:hover {
+            background-color: rgb(5, 5, 5);
+        }
+        
+        .notification-title {
+            font-size: 16px;
+        }
+        
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .notification-icon-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="notification-holder">
+        <div class="notification-box" onclick="ipcRenderer.send('launch-panel')">
+            <div class="notification-icon">
+                <img class="notification-icon-image" src="">
+            </div>
+            <div class="notification-content">
+                <div>
+                    <b class="notification-title"></b>
+                </div>
+                <div>
+                    <a class="notification-text"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const {
+            ipcRenderer
+        } = require("electron");
+
+        ipcRenderer.on("new-notification", (event, data) => {
+            if (data.icon) {
+                document.getElementsByClassName("notification-icon")[0].style.display = "block";
+                document.getElementsByClassName("notification-icon-image")[0].setAttribute("src", data.icon)
+            } else {
+                document.getElementsByClassName("notification-icon")[0].style.display = "none";
+                document.getElementsByClassName("notification-icon-image")[0].setAttribute("src", "")
+            };
+            if (data.title) {
+                document.getElementsByClassName("notification-title")[0].innerText = data.title;
+            } else {
+                document.getElementsByClassName("notification-title")[0].innerText = "Remark Notification";
+            };
+            if (data.content) {
+                document.getElementsByClassName("notification-text")[0].innerText = data.content;
+            } else {
+                document.getElementsByClassName("notification-text")[0].innerText = "New Notification";
+            };
+            if (data.id) {
+                document.getElementsByClassName("notification-box")[0].setAttribute("onclick", `ipcRenderer.send('launch-panel', '${data.id}')`)
+            } else {
+                document.getElementsByClassName("notification-box")[0].setAttribute("onclick", `ipcRenderer.send('launch-panel')`)
+            };
+        });
+    </script>
+</body>
+
+</html>
