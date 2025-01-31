@@ -1,3 +1,11 @@
+process.on('uncaughtException', (err) => {
+    // Prevents the app from closing for unexpected error
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    // Prevents the app from closing for unexpected error
+});
+
 const API_URL = "https://remarkpanel.com/api";
 const WEBSOCKET_URL = "wss://remarkpanel.com";
 const PANEL_URL = "https://remarkpanel.com";
@@ -52,84 +60,96 @@ function createNotificationWindow() {
 }
 
 function showNotification(title, message, icon, type = null) {
-    let notificationWindow = createNotificationWindow();
-    if (!notificationWindow) return;
+    try {
+        let notificationWindow = createNotificationWindow();
+        if (!notificationWindow) return;
 
-    notificationWindow.show();
+        notificationWindow.show();
 
-    let soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "ping.mp3");
+        let soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "ping.mp3");
 
-    if (type === "connect") {
-        soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "2.mp3");
-    } else if (type === "opened") {
-        soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "1.mp3");
-    } else if (type === "confirmed") {
-        soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "3.mp3");
-    } else if (type === "rejected") {
-        soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "4.mp3");
-    }
+        if (type === "connect") {
+            soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "2.mp3");
+        } else if (type === "opened") {
+            soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "1.mp3");
+        } else if (type === "confirmed") {
+            soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "3.mp3");
+        } else if (type === "rejected") {
+            soundPath = path.join(process.resourcesPath, "app.asar.unpacked", "sounds", "4.mp3");
+        }
 
-    sound.play(soundPath).catch(e => {
-        // do nothing
-    });
+        sound.play(soundPath).catch(e => {
+            // do nothing
+        });
 
-    notificationWindow.webContents.send("new-notification", {
-        title: title,
-        content: message,
-        icon: icon,
-        id: notificationWindow.id.toString()
-    });
+        notificationWindow.webContents.send("new-notification", {
+            title: title,
+            content: message,
+            icon: icon,
+            id: notificationWindow.id.toString()
+        });
 
-    setTimeout(() => {
-        removeNotificationWindow(notificationWindow);
-    }, 4000);
+        setTimeout(() => {
+            removeNotificationWindow(notificationWindow);
+        }, 4000);
+    } catch (error) {}
 }
 
 function removeNotificationWindow(notificationWindow) {
-    const index = notificationWindows.indexOf(notificationWindow);
-    if (index !== -1) {
-        notificationWindows.splice(index, 1);
-        notificationWindow.close();
-    }
-    repositionNotifications();
+    try {
+        const index = notificationWindows.indexOf(notificationWindow);
+        if (index !== -1) {
+            notificationWindows.splice(index, 1);
+            notificationWindow.close();
+        }
+        repositionNotifications();
+    } catch (error) {}
 }
 
 function repositionNotifications() {
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    try {
+        const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-    notificationWindows.forEach((win, index) => {
-        if (!win.isDestroyed()) {
-            const targetX = width - (NOTIFICATION_WIDTH + 10);
-            const targetY = height - ((NOTIFICATION_HEIGHT + NOTIFICATION_SPACING) * (index + 1));
+        notificationWindows.forEach((win, index) => {
+            if (!win.isDestroyed()) {
+                const targetX = width - (NOTIFICATION_WIDTH + 10);
+                const targetY = height - ((NOTIFICATION_HEIGHT + NOTIFICATION_SPACING) * (index + 1));
 
-            const currentBounds = win.getBounds();
-            let currentY = currentBounds.y;
+                const currentBounds = win.getBounds();
+                let currentY = currentBounds.y;
 
-            const interval = setInterval(() => {
-                if (Math.abs(currentY - targetY) < 2) {
-                    win.setPosition(targetX, targetY, true);
-                    clearInterval(interval);
-                } else {
-                    currentY += (targetY - currentY) * 0.2;
-                    win.setPosition(targetX, Math.round(currentY), true);
-                }
-            }, 16);
-        }
-    });
+                const interval = setInterval(() => {
+                    try {
+                        if (Math.abs(currentY - targetY) < 2) {
+                            win.setPosition(targetX, targetY, true);
+                            clearInterval(interval);
+                        } else {
+                            currentY += (targetY - currentY) * 0.2;
+                            win.setPosition(targetX, Math.round(currentY), true);
+                        }
+                    } catch (error) {
+                        clearInterval(interval);
+                    }
+                }, 16);
+            }
+        });
+    } catch (error) {}
 }
 
 
 ipcMain.on("launch-panel", (event, id) => {
-    if (id) {
-        try {
-            notificationWindows.forEach((notificationWindow) => {
-                if (notificationWindow.id.toString() == id.toString()) {
-                    removeNotificationWindow(notificationWindow);
-                };
-            });
-        } catch (error) {}
-    };
-    shell.openExternal(PANEL_URL);
+    try {
+        if (id) {
+            try {
+                notificationWindows.forEach((notificationWindow) => {
+                    if (notificationWindow.id.toString() == id.toString()) {
+                        removeNotificationWindow(notificationWindow);
+                    };
+                });
+            } catch (error) {}
+        };
+        shell.openExternal(PANEL_URL);
+    } catch (error) {}
 });
 
 let failedStartCount = 0;
